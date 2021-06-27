@@ -16,11 +16,9 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Arrays;
 
-public class TokensTranslator implements Translator<List<String>, List<String[]>> {
-    private List<String> tokens;
+public class TokensTranslator implements Translator<String[], String[]> {
     private final String modelName;
     private Vocabulary vocabulary;
 
@@ -44,27 +42,19 @@ public class TokensTranslator implements Translator<List<String>, List<String[]>
     }
 
     @Override
-    public List<String[]> processOutput(TranslatorContext translatorContext, NDList ndList) throws Exception {
+    public String[] processOutput(TranslatorContext translatorContext, NDList ndList) throws Exception {
         ObjectMapper objectMapper = new ObjectMapper();
         JsonNode id2label = objectMapper.readTree(new File("models/" + modelName + "/config.json")).get("id2label");
-        NDArray logistics = ndList.get(0);
-        List<String[]> result = new ArrayList<>();
-        Number[] indices = logistics.argMax(1).toArray();
-        for (int i = 0; i < tokens.size(); i++) {
-            result.add(new String[]{tokens.get(i), id2label.get(String.valueOf(indices[i])).asText()});
-        }
-        return result;
+        return (String[]) Arrays.stream(ndList.get(0).argMax(1).toArray())
+                .map(i -> id2label.get(String.valueOf(i)).asText()).toArray();
     }
 
     @Override
-    public NDList processInput(TranslatorContext translatorContext, List<String> tokens) {
-        // get the encoded tokens that would be used in precessOutput
-        this.tokens = tokens;
+    public NDList processInput(TranslatorContext translatorContext, String[] tokens) {
         NDManager manager = translatorContext.getNDManager();
         // map the tokens(String) to indices(long)
-        long[] indices = tokens.stream().mapToLong(vocabulary::getIndex).toArray();
+        long[] indices = Arrays.stream(tokens).mapToLong(vocabulary::getIndex).toArray();
         NDArray indicesArray = manager.create(indices);
-        // The order matters
         return new NDList(indicesArray);
     }
 }

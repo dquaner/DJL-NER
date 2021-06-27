@@ -17,10 +17,9 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.List;
 
-public class SequenceTranslator implements Translator<String, List<String[]>> {
+public class SequenceTranslator implements Translator<String, String[][]> {
     private List<String> tokens;
     private final String modelName;
     private Vocabulary vocabulary;
@@ -47,14 +46,13 @@ public class SequenceTranslator implements Translator<String, List<String[]>> {
     }
 
     @Override
-    public List<String[]> processOutput(TranslatorContext translatorContext, NDList ndList) throws Exception {
+    public String[][] processOutput(TranslatorContext translatorContext, NDList ndList) throws Exception {
         ObjectMapper objectMapper = new ObjectMapper();
         JsonNode id2label = objectMapper.readTree(new File("models/" + modelName + "/config.json")).get("id2label");
-        NDArray logistics = ndList.get(0);
-        List<String[]> result = new ArrayList<>();
-        Number[] indices = logistics.argMax(1).toArray();
+        String[][] result = new String[tokens.size()][2];
+        Number[] indices = ndList.get(0).argMax(1).toArray();
         for (int i = 0; i < tokens.size(); i++) {
-            result.add(new String[]{tokens.get(i), id2label.get(String.valueOf(indices[i])).asText()});
+            result[i] = new String[]{tokens.get(i), id2label.get(String.valueOf(indices[i])).asText()};
         }
         return result;
     }
