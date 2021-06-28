@@ -45,8 +45,12 @@ public class TokensTranslator implements Translator<String[], String[]> {
     public String[] processOutput(TranslatorContext translatorContext, NDList ndList) throws Exception {
         ObjectMapper objectMapper = new ObjectMapper();
         JsonNode id2label = objectMapper.readTree(new File("models/" + modelName + "/config.json")).get("id2label");
-        return (String[]) Arrays.stream(ndList.get(0).argMax(1).toArray())
-                .map(i -> id2label.get(String.valueOf(i)).asText()).toArray();
+        Number[] indices = ndList.get(0).argMax(1).toArray();
+        String[] result = new String[indices.length];
+        for( int i = 0; i < indices.length; i++) {
+            result[i] = id2label.get(String.valueOf(indices[i])).asText();
+        }
+        return result;
     }
 
     @Override
